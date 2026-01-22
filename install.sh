@@ -50,7 +50,7 @@ ask_for_confirmation() {
     print_info "  - Instalará el Tmux Plugin Manager (tpm)."
     print_info "  - Sincronizará los plugins de Neovim (LazyVim)."
     print_info ""
-    read -p "¿Deseas proceder con la instalación? (y/N): " -n 1 -r REPLY < /dev/tty
+    read -r -p "¿Deseas proceder con la instalación? (escribe 'y' o 'Y' para confirmar y presiona Enter): " REPLY < /dev/tty
     echo # (optional) move to a new line
     if [[ ! "$REPLY" =~ ^[Yy]$ ]]; then
         print_info "Instalación cancelada por el usuario."
