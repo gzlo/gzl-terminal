@@ -28,7 +28,7 @@ print_error() { echo -e "\e[31mERROR: $1\e[0m"; }
 REPO_URL="https://github.com/gzlo/gzl-terminal.git"
 DOTFILES_DIR="$HOME/dotfiles" # Se clona aquí, no en .dotfiles, para evitar conflictos con el script
 FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip"
-NVIM_URL="https://github.com/neovim/neovim/releases/latest/download/nvim.appimage"
+NVIM_URL="https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage"
 
 # --- Installation Functions ---
 
