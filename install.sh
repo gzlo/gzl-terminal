@@ -1,10 +1,18 @@
 #!/bin/bash
-#
-# install.sh
-#
+
 # Este script configura un entorno de terminal completo, inspirado en
 # la automatización de scripts como el de Chris Titus, pero usando tus
 # configuraciones personales.
+#
+
+# Asegurarse de que el script se ejecuta con bash
+if [ -z "$BASH_VERSION" ]; then
+    echo "¡Atención! Este script debería ejecutarse con bash. Reintentando con bash..."
+    exec bash "$0" "$@"
+fi
+
+#
+# install.sh
 #
 # Pasos que realiza:
 # 1. Instala dependencias (git, tmux, herramientas de compilación).
@@ -18,6 +26,7 @@
 #
 
 set -e
+
 
 # --- Helper Functions ---
 print_info() { echo -e "\e[34mINFO: $1\e[0m"; }
