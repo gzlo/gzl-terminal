@@ -30,6 +30,26 @@ DOTFILES_DIR="$HOME/dotfiles" # Se clona aquí, no en .dotfiles, para evitar con
 FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip"
 
 
+# --- Confirmation Function ---
+ask_for_confirmation() {
+    print_info "Este script instalará/configurará lo siguiente:"
+    print_info "  - Dependencias del sistema (git, tmux, curl, build-essential, fzf, ripgrep, etc.)"
+    print_info "  - La última versión de Neovim (vía PPA diario para Debian/Ubuntu, >=0.10.0)."
+    print_info "  - Una Nerd Font (FiraCode) en ~/.local/share/fonts."
+    print_info "  - Clonará/actualizará tus dotfiles en ~/dotfiles."
+    print_info "  - Creará enlaces simbólicos para Neovim (~/.config/nvim) y Bash (~/.bashrc)."
+    print_info "  - Instalará el Tmux Plugin Manager (tpm)."
+    print_info "  - Sincronizará los plugins de Neovim (LazyVim)."
+    print_info ""
+    read -p "¿Deseas proceder con la instalación? (y/N): " -n 1 -r
+    echo # (optional) move to a new line
+    if [[ ! "$REPLY" =~ ^[Yy]$ ]]; then
+        print_info "Instalación cancelada por el usuario."
+        exit 0
+    fi
+}
+
+
 # --- Installation Functions ---
 
 install_dependencies() {
@@ -124,6 +144,7 @@ install_neovim() {
 # --- Main Execution ---
 
 main() {
+    ask_for_confirmation # Solicitar confirmación al inicio
     install_dependencies
     # install_modern_cli # Comentado por ahora para evitar dependencias de RUST/Cargo
     install_nerd_font
