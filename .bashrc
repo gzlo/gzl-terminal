@@ -1,0 +1,1 @@
+/home/gzlo/.local/share/mybash/.bashrc
