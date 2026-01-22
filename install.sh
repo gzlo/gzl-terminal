@@ -81,26 +81,42 @@ install_nerd_font() {
 }
 
 install_neovim() {
-    print_info "Instalando la última versión de Neovim (vía PPA para sistemas Debian/Ubuntu)..."
+    print_info "Instalando la última versión de Neovim (vía PPA diario para Debian/Ubuntu para asegurar >=0.10.0)..."
     if command -v apt-get &>/dev/null; then
-        if ! command -v nvim &>/dev/null || nvim --version | grep -q "NVIM v0.9"; then # Check if nvim is too old
+        # Check if nvim is installed and its version (major.minor) is less than 0.10
+        CURRENT_NVIM_VERSION=$(nvim --version 2>/dev/null | head -n 1 | grep -oP 'NVIM v\K\d+\.\d+')
+        NEEDS_UPGRADE=false
+        if [[ -z "$CURRENT_NVIM_VERSION" ]]; then # nvim not found
+            NEEDS_UPGRADE=true
+        else
+            # Split version into major and minor
+            NVIM_MAJOR=$(echo "$CURRENT_NVIM_VERSION" | cut -d'.' -f1)
+            NVIM_MINOR=$(echo "$CURRENT_NVIM_VERSION" | cut -d'.' -f2)
+            if (( NVIM_MAJOR < 0 || (NVIM_MAJOR == 0 && NVIM_MINOR < 10) )); then
+                NEEDS_UPGRADE=true
+            fi
+        fi
+
+        if "$NEEDS_UPGRADE" ; then
             sudo apt-get update
             sudo apt-get install -y software-properties-common
-            sudo add-apt-repository --yes ppa:neovim-ppa/stable
+            sudo add-apt-repository --remove --yes ppa:neovim-ppa/stable || true # Remove stable PPA if it was added
+            sudo add-apt-repository --yes ppa:neovim-ppa/daily # Add daily PPA
             sudo apt-get update
             sudo apt-get install -y neovim
         else
-            print_info "Neovim ya está instalado y parece ser una versión reciente."
+            print_info "Neovim ya está instalado y es la versión requerida (>=0.10.0)."
         fi
     else
-        # Fallback for non-Debian/Ubuntu systems or if PPA fails
+        # Fallback for non-Debian/Ubuntu systems - AppImage
         print_info "Sistema no Debian/Ubuntu o PPA no disponible. Intentando instalar Neovim via AppImage (puede fallar)..."
-        if [ ! -f /usr/local/bin/nvim ]; then
-            curl -fLo "$HOME/nvim.appimage" "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage" # Keep original URL as fallback
+        # This part of the script is not the current issue, but it should correctly download the AppImage and put it in /usr/local/bin
+        if [ ! -f /usr/local/bin/nvim ] || ! /usr/local/bin/nvim --version | grep -q "NVIM v0.10"; then
+            curl -fLo "$HOME/nvim.appimage" "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage"
             chmod u+x "$HOME/nvim.appimage"
             sudo mv "$HOME/nvim.appimage" /usr/local/bin/nvim
         else
-            print_info "Neovim ya parece estar instalado en /usr/local/bin/nvim."
+            print_info "Neovim AppImage ya parece estar instalado y es la versión requerida (>=0.10.0)."
         fi
     fi
 }
