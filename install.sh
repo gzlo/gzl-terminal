@@ -28,7 +28,7 @@ print_error() { echo -e "\e[31mERROR: $1\e[0m"; }
 REPO_URL="https://github.com/gzlo/gzl-terminal.git"
 DOTFILES_DIR="$HOME/dotfiles" # Se clona aquí, no en .dotfiles, para evitar conflictos con el script
 FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.2.1/FiraCode.zip"
-NVIM_URL="https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage"
+
 
 # --- Installation Functions ---
 
@@ -81,14 +81,27 @@ install_nerd_font() {
 }
 
 install_neovim() {
-    print_info "Instalando la última versión de Neovim..."
-    if [ ! -f /usr/local/bin/nvim ]; then
-        curl -fLo "$HOME/nvim.appimage" "$NVIM_URL"
-        chmod u+x "$HOME/nvim.appimage"
-        # Mover a una ubicación del PATH. Requiere sudo.
-        sudo mv "$HOME/nvim.appimage" /usr/local/bin/nvim
+    print_info "Instalando la última versión de Neovim (vía PPA para sistemas Debian/Ubuntu)..."
+    if command -v apt-get &>/dev/null; then
+        if ! command -v nvim &>/dev/null || nvim --version | grep -q "NVIM v0.9"; then # Check if nvim is too old
+            sudo apt-get update
+            sudo apt-get install -y software-properties-common
+            sudo add-apt-repository --yes ppa:neovim-ppa/stable
+            sudo apt-get update
+            sudo apt-get install -y neovim
+        else
+            print_info "Neovim ya está instalado y parece ser una versión reciente."
+        fi
     else
-        print_info "Neovim ya parece estar instalado en /usr/local/bin/nvim."
+        # Fallback for non-Debian/Ubuntu systems or if PPA fails
+        print_info "Sistema no Debian/Ubuntu o PPA no disponible. Intentando instalar Neovim via AppImage (puede fallar)..."
+        if [ ! -f /usr/local/bin/nvim ]; then
+            curl -fLo "$HOME/nvim.appimage" "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage" # Keep original URL as fallback
+            chmod u+x "$HOME/nvim.appimage"
+            sudo mv "$HOME/nvim.appimage" /usr/local/bin/nvim
+        else
+            print_info "Neovim ya parece estar instalado en /usr/local/bin/nvim."
+        fi
     fi
 }
 
