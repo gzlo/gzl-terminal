@@ -124,7 +124,7 @@ install_neovim() {
             apt-get update && apt-get install -y lsb-release || { print_error "Fallo al instalar lsb-release."; exit 1; }
         fi
 
-        UBUNTU_CODENAME=$(lsb_release -sc) # e.g., noble, jammy
+        UBUNTU_CODENAME=$(lsb_release -sc 2>/dev/null) # e.g., noble, jammy
 
         CURRENT_NVIM_VERSION=$(nvim --version 2>/dev/null | head -n 1 | grep -oP 'NVIM v\K\d+\.\d+')
         NEEDS_UPGRADE=false
