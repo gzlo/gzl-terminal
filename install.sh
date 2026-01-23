@@ -132,7 +132,7 @@ install_neovim() {
     
     # Instalar AppImage (método más confiable)
     print_info "Descargando Neovim AppImage desde GitHub..."
-    NVIM_URL="https://github.com/neovim/neovim/releases/latest/download/nvim.appimage"
+    NVIM_URL="https://github.com/neovim/neovim/releases/latest/download/nvim-linux64.appimage"
     
     curl -fLo /tmp/nvim.appimage "$NVIM_URL" || { print_error "Fallo al descargar Neovim AppImage."; exit 1; }
     chmod +x /tmp/nvim.appimage
