@@ -69,6 +69,7 @@ ask_for_confirmation() {
 install_dependencies() {
     print_info "Instalando dependencias del sistema..."
     if command -v apt-get &>/dev/null; then
+        export DEBIAN_FRONTEND=noninteractive
         apt-get update
         apt-get install -y git tmux curl unzip build-essential fzf ripgrep
     elif command -v dnf &>/dev/null; then
@@ -110,7 +111,7 @@ install_nerd_font() {
     curl -fLo "FiraCode.zip" "$FONT_URL"
     unzip -o FiraCode.zip
     rm FiraCode.zip
-    fc-cache -f -v
+    fc-cache -f > /dev/null 2>&1
     cd -
 }
 
@@ -138,26 +139,27 @@ install_neovim() {
         fi
 
         if "$NEEDS_UPGRADE" ; then
+            export DEBIAN_FRONTEND=noninteractive
             print_info "Actualizando listado de paquetes e instalando software-properties-common."
-            apt-get update || { print_error "Fallo al actualizar apt-get."; exit 1; }
-            apt-get install -y software-properties-common || { print_error "Fallo al instalar software-properties-common."; exit 1; }
+            apt-get update -qq || { print_error "Fallo al actualizar apt-get."; exit 1; }
+            apt-get install -y -qq software-properties-common || { print_error "Fallo al instalar software-properties-common."; exit 1; }
 
             # Remove stable PPA if it was added
             print_info "Intentando eliminar PPA stable de Neovim si existe."
-            add-apt-repository --remove --yes ppa:neovim-ppa/stable || true
+            add-apt-repository --remove --yes ppa:neovim-ppa/stable 2>/dev/null || true
 
             # Add appropriate PPA based on Ubuntu codename
             if [ "$UBUNTU_CODENAME" == "noble" ]; then
                 print_info "Detectado Ubuntu Noble. Añadiendo PPA 'unstable' para Neovim."
-                add-apt-repository --yes ppa:neovim-ppa/unstable || { print_error "Fallo al añadir PPA 'unstable'."; exit 1; }
+                DEBIAN_FRONTEND=noninteractive add-apt-repository --yes ppa:neovim-ppa/unstable < /dev/null || { print_error "Fallo al añadir PPA 'unstable'."; exit 1; }
             else
                 print_info "Usando PPA 'daily' para Neovim diario."
-                add-apt-repository --yes ppa:neovim-ppa/daily || { print_error "Fallo al añadir PPA 'daily'."; exit 1; }
+                DEBIAN_FRONTEND=noninteractive add-apt-repository --yes ppa:neovim-ppa/daily < /dev/null || { print_error "Fallo al añadir PPA 'daily'."; exit 1; }
             fi
             
             print_info "Actualizando listado de paquetes y instalando Neovim."
-            apt-get update || { print_error "Fallo al actualizar apt-get después de añadir PPA."; exit 1; }
-            apt-get install -y neovim || { print_error "Fallo al instalar Neovim desde el PPA."; exit 1; }
+            apt-get update -qq || { print_error "Fallo al actualizar apt-get después de añadir PPA."; exit 1; }
+            apt-get install -y -qq neovim || { print_error "Fallo al instalar Neovim desde el PPA."; exit 1; }
         else
             print_info "Neovim ya está instalado y es la versión requerida (>=0.10.0)."
         fi
