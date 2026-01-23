@@ -223,4 +223,72 @@ main() {
     print_info "En Tmux, recuerda presionar 'prefix + I' para instalar los plugins."
 }
 
+# --- Remote Configuration Script ---
+
+remote_config() {
+  # Variables
+  REMOTE_SERVER=""
+  REMOTE_USER=""
+  CONFIG_DIR="$(pwd)"
+
+  # Función para mostrar mensajes y preguntar al usuario
+  confirm() {
+    read -p "$1 (y/n): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo "Operación cancelada."
+      exit 1
+    fi
+  }
+
+  # Paso 1: Copiar configuraciones al servidor remoto
+  copy_configs() {
+    echo "\n=== Copiando configuraciones al servidor remoto ==="
+    confirm "¿Deseas continuar con la copia de configuraciones?"
+
+    scp "$CONFIG_DIR/bashrc" "$REMOTE_USER@$REMOTE_SERVER:~/.bashrc"
+    scp -r "$CONFIG_DIR/nvim" "$REMOTE_USER@$REMOTE_SERVER:~/.config/nvim"
+
+    echo "\nConfiguraciones copiadas correctamente."
+  }
+
+  # Paso 2: Instalar plugins de Neovim
+  install_neovim_plugins() {
+    echo "\n=== Instalando plugins de Neovim ==="
+    confirm "¿Deseas instalar los plugins de Neovim?"
+
+    ssh "$REMOTE_USER@$REMOTE_SERVER" << EOF
+      nvim --headless \
+        +"Lazy! sync" \
+        +qa
+EOF
+
+    echo "\nPlugins de Neovim instalados correctamente."
+  }
+
+  # Paso 3: Instalar Tmux Plugin Manager (TPM)
+  install_tmux_plugins() {
+    echo "\n=== Instalando plugins de Tmux ==="
+    confirm "¿Deseas instalar los plugins de Tmux?"
+
+    ssh "$REMOTE_USER@$REMOTE_SERVER" << EOF
+      git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm || true
+      ~/.tmux/plugins/tpm/bin/install_plugins
+EOF
+
+    echo "\nPlugins de Tmux instalados correctamente."
+  }
+
+  # Inicio del script
+  echo "\n=== Script de configuración remota ==="
+  read -p "Introduce la dirección del servidor remoto: " REMOTE_SERVER
+  read -p "Introduce el usuario del servidor remoto: " REMOTE_USER
+
+  copy_configs
+  install_neovim_plugins
+  install_tmux_plugins
+
+  echo "\n=== Proceso completado ==="
+}
+
 main "$@"
