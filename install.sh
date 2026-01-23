@@ -116,65 +116,41 @@ install_nerd_font() {
 }
 
 install_neovim() {
-    print_info "Instalando la última versión de Neovim (vía PPA para Debian/Ubuntu para asegurar >=0.10.0)..."
-    if command -v apt-get &>/dev/null; then
-        # Check if lsb_release is installed
-        if ! command -v lsb_release &>/dev/null; then
-            print_info "Instalando lsb-release para detectar la versión de Ubuntu."
-            apt-get update && apt-get install -y lsb-release || { print_error "Fallo al instalar lsb-release."; exit 1; }
-        fi
-
-        UBUNTU_CODENAME=$(lsb_release -sc 2>/dev/null) # e.g., noble, jammy
-
-        CURRENT_NVIM_VERSION=$(nvim --version 2>/dev/null | head -n 1 | grep -oP 'NVIM v\K\d+\.\d+' || true)
-        NEEDS_UPGRADE=false
-        if [[ -z "$CURRENT_NVIM_VERSION" ]]; then # nvim not found
-            NEEDS_UPGRADE=true
-        else
-            NVIM_MAJOR=$(echo "$CURRENT_NVIM_VERSION" | cut -d'.' -f1)
-            NVIM_MINOR=$(echo "$CURRENT_NVIM_VERSION" | cut -d'.' -f2)
-            if (( NVIM_MAJOR < 0 || (NVIM_MAJOR == 0 && NVIM_MINOR < 10) )); then
-                NEEDS_UPGRADE=true
-            fi
-        fi
-
-        if "$NEEDS_UPGRADE" ; then
-            export DEBIAN_FRONTEND=noninteractive
-            print_info "Actualizando listado de paquetes e instalando software-properties-common."
-            apt-get update -qq || { print_error "Fallo al actualizar apt-get."; exit 1; }
-            apt-get install -y -qq software-properties-common || { print_error "Fallo al instalar software-properties-common."; exit 1; }
-
-            # Remove stable PPA if it was added
-            print_info "Intentando eliminar PPA stable de Neovim si existe."
-            add-apt-repository --remove --yes ppa:neovim-ppa/stable 2>/dev/null || true
-
-            # Add appropriate PPA based on Ubuntu codename
-            if [ "$UBUNTU_CODENAME" == "noble" ]; then
-                print_info "Detectado Ubuntu Noble. Añadiendo PPA 'unstable' para Neovim."
-                DEBIAN_FRONTEND=noninteractive add-apt-repository --yes ppa:neovim-ppa/unstable < /dev/null || { print_error "Fallo al añadir PPA 'unstable'."; exit 1; }
-            else
-                print_info "Usando PPA 'daily' para Neovim diario."
-                DEBIAN_FRONTEND=noninteractive add-apt-repository --yes ppa:neovim-ppa/daily < /dev/null || { print_error "Fallo al añadir PPA 'daily'."; exit 1; }
-            fi
-            
-            print_info "Actualizando listado de paquetes y instalando Neovim."
-            apt-get update -qq || { print_error "Fallo al actualizar apt-get después de añadir PPA."; exit 1; }
-            apt-get install -y -qq neovim || { print_error "Fallo al instalar Neovim desde el PPA."; exit 1; }
-        else
-            print_info "Neovim ya está instalado y es la versión requerida (>=0.10.0)."
-        fi
-    else
-        # Fallback for non-Debian/Ubuntu systems - AppImage
-        print_info "Sistema no Debian/Ubuntu o PPA no disponible. Intentando instalar Neovim via AppImage (puede fallar)..."
-        # This part of the script is not the current issue, but it should correctly download the AppImage and put it in /usr/local/bin
-        if [ ! -f /usr/local/bin/nvim ] || ! /usr/local/bin/nvim --version | grep -q "NVIM v0.10"; then
-            curl -fLo "$HOME/nvim.appimage" "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage"
-            chmod u+x "$HOME/nvim.appimage"
-            mv "$HOME/nvim.appimage" /usr/local/bin/nvim
-        else
-            print_info "Neovim AppImage ya parece estar instalado y es la versión requerida (>=0.10.0)."
+    print_info "Instalando la última versión de Neovim..."
+    
+    # Verificar si Neovim ya está instalado y es versión >= 0.10
+    if command -v nvim &>/dev/null; then
+        CURRENT_VERSION=$(nvim --version 2>/dev/null | head -n 1 | grep -oP 'NVIM v\K[\d.]+' || echo "0.0")
+        MAJOR=$(echo "$CURRENT_VERSION" | cut -d'.' -f1)
+        MINOR=$(echo "$CURRENT_VERSION" | cut -d'.' -f2)
+        
+        if (( MAJOR > 0 || (MAJOR == 0 && MINOR >= 10) )); then
+            print_info "Neovim v$CURRENT_VERSION ya está instalado (>= 0.10.0). Omitiendo instalación."
+            return 0
         fi
     fi
+    
+    # Instalar AppImage (método más confiable)
+    print_info "Descargando Neovim AppImage desde GitHub..."
+    NVIM_URL="https://github.com/neovim/neovim/releases/latest/download/nvim.appimage"
+    
+    curl -fLo /tmp/nvim.appimage "$NVIM_URL" || { print_error "Fallo al descargar Neovim AppImage."; exit 1; }
+    chmod +x /tmp/nvim.appimage
+    
+    # Extraer AppImage si FUSE no está disponible
+    if ! /tmp/nvim.appimage --version &>/dev/null; then
+        print_info "FUSE no disponible. Extrayendo AppImage..."
+        cd /tmp
+        ./nvim.appimage --appimage-extract &>/dev/null || { print_error "Fallo al extraer AppImage."; exit 1; }
+        mv squashfs-root /opt/nvim
+        ln -sf /opt/nvim/usr/bin/nvim /usr/local/bin/nvim
+        rm -f /tmp/nvim.appimage
+    else
+        mv /tmp/nvim.appimage /usr/local/bin/nvim
+    fi
+    
+    print_success "Neovim instalado correctamente en /usr/local/bin/nvim"
+    nvim --version | head -n 1
 }
 
 # --- Main Execution ---
