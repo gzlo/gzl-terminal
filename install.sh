@@ -126,7 +126,7 @@ install_neovim() {
 
         UBUNTU_CODENAME=$(lsb_release -sc 2>/dev/null) # e.g., noble, jammy
 
-        CURRENT_NVIM_VERSION=$(nvim --version 2>/dev/null | head -n 1 | grep -oP 'NVIM v\K\d+\.\d+')
+        CURRENT_NVIM_VERSION=$(nvim --version 2>/dev/null | head -n 1 | grep -oP 'NVIM v\K\d+\.\d+' || true)
         NEEDS_UPGRADE=false
         if [[ -z "$CURRENT_NVIM_VERSION" ]]; then # nvim not found
             NEEDS_UPGRADE=true
