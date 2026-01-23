@@ -27,6 +27,11 @@ fi
 
 set -e
 
+# --- Check for root privileges ---
+if [[ $EUID -ne 0 ]]; then
+   print_error "Este script debe ejecutarse como root. Usa: sudo bash install.sh o curl -fsSL <url> | sudo bash"
+   exit 1
+fi
 
 # --- Helper Functions ---
 print_info() { echo -e "\e[34mINFO: $1\e[0m"; }
@@ -64,13 +69,13 @@ ask_for_confirmation() {
 install_dependencies() {
     print_info "Instalando dependencias del sistema..."
     if command -v apt-get &>/dev/null; then
-        sudo apt-get update
-        sudo apt-get install -y git tmux curl unzip build-essential fzf ripgrep
+        apt-get update
+        apt-get install -y git tmux curl unzip build-essential fzf ripgrep
     elif command -v dnf &>/dev/null; then
-        sudo dnf install -y git tmux curl unzip fzf ripgrep 'dnf-command(builddep)'
-        sudo dnf builddep -y neovim
+        dnf install -y git tmux curl unzip fzf ripgrep 'dnf-command(builddep)'
+        dnf builddep -y neovim
     elif command -v pacman &>/dev/null; then
-        sudo pacman -Syu --noconfirm git tmux curl unzip fzf ripgrep base-devel
+        pacman -Syu --noconfirm git tmux curl unzip fzf ripgrep base-devel
     else
         print_error "Gestor de paquetes no soportado. Por favor, instala manualmente: git, tmux, curl, unzip, fzf, ripgrep."
         exit 1
@@ -115,7 +120,7 @@ install_neovim() {
         # Check if lsb_release is installed
         if ! command -v lsb_release &>/dev/null; then
             print_info "Instalando lsb-release para detectar la versión de Ubuntu."
-            sudo apt-get update && sudo apt-get install -y lsb-release || { print_error "Fallo al instalar lsb-release."; exit 1; }
+            apt-get update && apt-get install -y lsb-release || { print_error "Fallo al instalar lsb-release."; exit 1; }
         fi
 
         UBUNTU_CODENAME=$(lsb_release -sc) # e.g., noble, jammy
@@ -134,25 +139,25 @@ install_neovim() {
 
         if "$NEEDS_UPGRADE" ; then
             print_info "Actualizando listado de paquetes e instalando software-properties-common."
-            sudo apt-get update || { print_error "Fallo al actualizar apt-get."; exit 1; }
-            sudo apt-get install -y software-properties-common || { print_error "Fallo al instalar software-properties-common."; exit 1; }
+            apt-get update || { print_error "Fallo al actualizar apt-get."; exit 1; }
+            apt-get install -y software-properties-common || { print_error "Fallo al instalar software-properties-common."; exit 1; }
 
             # Remove stable PPA if it was added
             print_info "Intentando eliminar PPA stable de Neovim si existe."
-            sudo add-apt-repository --remove --yes ppa:neovim-ppa/stable || true
+            add-apt-repository --remove --yes ppa:neovim-ppa/stable || true
 
             # Add appropriate PPA based on Ubuntu codename
             if [ "$UBUNTU_CODENAME" == "noble" ]; then
                 print_info "Detectado Ubuntu Noble. Añadiendo PPA 'unstable' para Neovim."
-                sudo add-apt-repository --yes ppa:neovim-ppa/unstable || { print_error "Fallo al añadir PPA 'unstable'."; exit 1; }
+                add-apt-repository --yes ppa:neovim-ppa/unstable || { print_error "Fallo al añadir PPA 'unstable'."; exit 1; }
             else
                 print_info "Usando PPA 'daily' para Neovim diario."
-                sudo add-apt-repository --yes ppa:neovim-ppa/daily || { print_error "Fallo al añadir PPA 'daily'."; exit 1; }
+                add-apt-repository --yes ppa:neovim-ppa/daily || { print_error "Fallo al añadir PPA 'daily'."; exit 1; }
             fi
             
             print_info "Actualizando listado de paquetes y instalando Neovim."
-            sudo apt-get update || { print_error "Fallo al actualizar apt-get después de añadir PPA."; exit 1; }
-            sudo apt-get install -y neovim || { print_error "Fallo al instalar Neovim desde el PPA."; exit 1; }
+            apt-get update || { print_error "Fallo al actualizar apt-get después de añadir PPA."; exit 1; }
+            apt-get install -y neovim || { print_error "Fallo al instalar Neovim desde el PPA."; exit 1; }
         else
             print_info "Neovim ya está instalado y es la versión requerida (>=0.10.0)."
         fi
@@ -163,7 +168,7 @@ install_neovim() {
         if [ ! -f /usr/local/bin/nvim ] || ! /usr/local/bin/nvim --version | grep -q "NVIM v0.10"; then
             curl -fLo "$HOME/nvim.appimage" "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage"
             chmod u+x "$HOME/nvim.appimage"
-            sudo mv "$HOME/nvim.appimage" /usr/local/bin/nvim
+            mv "$HOME/nvim.appimage" /usr/local/bin/nvim
         else
             print_info "Neovim AppImage ya parece estar instalado y es la versión requerida (>=0.10.0)."
         fi
