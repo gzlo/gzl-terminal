@@ -112,7 +112,12 @@ install_nerd_font() {
 install_neovim() {
     print_info "Instalando la última versión de Neovim (vía PPA para Debian/Ubuntu para asegurar >=0.10.0)..."
     if command -v apt-get &>/dev/null; then
-        # Determine Ubuntu version
+        # Check if lsb_release is installed
+        if ! command -v lsb_release &>/dev/null; then
+            print_info "Instalando lsb-release para detectar la versión de Ubuntu."
+            sudo apt-get update && sudo apt-get install -y lsb-release || { print_error "Fallo al instalar lsb-release."; exit 1; }
+        fi
+
         UBUNTU_CODENAME=$(lsb_release -sc) # e.g., noble, jammy
 
         CURRENT_NVIM_VERSION=$(nvim --version 2>/dev/null | head -n 1 | grep -oP 'NVIM v\K\d+\.\d+')
@@ -128,29 +133,33 @@ install_neovim() {
         fi
 
         if "$NEEDS_UPGRADE" ; then
-            sudo apt-get update
-            sudo apt-get install -y software-properties-common
+            print_info "Actualizando listado de paquetes e instalando software-properties-common."
+            sudo apt-get update || { print_error "Fallo al actualizar apt-get."; exit 1; }
+            sudo apt-get install -y software-properties-common || { print_error "Fallo al instalar software-properties-common."; exit 1; }
 
             # Remove stable PPA if it was added
+            print_info "Intentando eliminar PPA stable de Neovim si existe."
             sudo add-apt-repository --remove --yes ppa:neovim-ppa/stable || true
 
             # Add appropriate PPA based on Ubuntu codename
             if [ "$UBUNTU_CODENAME" == "noble" ]; then
-                print_info "Detectado Ubuntu Noble. Usando PPA 'unstable' para Neovim diario."
-                sudo add-apt-repository --yes ppa:neovim-ppa/unstable # For Noble
+                print_info "Detectado Ubuntu Noble. Añadiendo PPA 'unstable' para Neovim."
+                sudo add-apt-repository --yes ppa:neovim-ppa/unstable || { print_error "Fallo al añadir PPA 'unstable'."; exit 1; }
             else
                 print_info "Usando PPA 'daily' para Neovim diario."
-                sudo add-apt-repository --yes ppa:neovim-ppa/daily # For other versions
+                sudo add-apt-repository --yes ppa:neovim-ppa/daily || { print_error "Fallo al añadir PPA 'daily'."; exit 1; }
             fi
             
-            sudo apt-get update
-            sudo apt-get install -y neovim
+            print_info "Actualizando listado de paquetes y instalando Neovim."
+            sudo apt-get update || { print_error "Fallo al actualizar apt-get después de añadir PPA."; exit 1; }
+            sudo apt-get install -y neovim || { print_error "Fallo al instalar Neovim desde el PPA."; exit 1; }
         else
             print_info "Neovim ya está instalado y es la versión requerida (>=0.10.0)."
         fi
     else
         # Fallback for non-Debian/Ubuntu systems - AppImage
         print_info "Sistema no Debian/Ubuntu o PPA no disponible. Intentando instalar Neovim via AppImage (puede fallar)..."
+        # This part of the script is not the current issue, but it should correctly download the AppImage and put it in /usr/local/bin
         if [ ! -f /usr/local/bin/nvim ] || ! /usr/local/bin/nvim --version | grep -q "NVIM v0.10"; then
             curl -fLo "$HOME/nvim.appimage" "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage"
             chmod u+x "$HOME/nvim.appimage"
